@@ -1,0 +1,8 @@
+{
+  "name": "dozor-admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check web/assets/app.js && node --check web/assets/player.js && node --check web/assets/console.js"
+  }
+}
