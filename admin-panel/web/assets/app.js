@@ -373,6 +373,7 @@ function navigate() {
 }
 
 function bindControls() {
+	$('sourceInput').readOnly = false;
   $('sourceInput').addEventListener('input',()=>{state.sourceDirty=true;updateButtons();});
   $('sourceInput').addEventListener('keydown',event=>{
     if(event.key==='Enter') {event.preventDefault();$('startButton').click();}

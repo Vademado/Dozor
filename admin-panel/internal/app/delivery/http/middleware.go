@@ -57,6 +57,7 @@ func (h *Handler) middleware(next http.Handler) http.Handler {
 			}
 		}()
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		// The browser reaches go2rtc on the panel host, not its Docker DNS name.
 		playerOrigin := url.URL{Scheme: "http", Host: r.Host}
