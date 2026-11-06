@@ -1,0 +1,10 @@
+api:
+  listen: ":1984"
+rtsp:
+  listen: ":8554"
+webrtc:
+  listen: ":8555"
+  candidates:
+    - ${GO2RTC_HOST}:8555
+streams:
+  luckfox: ${CAMERA_RTSP_URL}

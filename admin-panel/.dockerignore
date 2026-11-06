@@ -1,0 +1,12 @@
+.cache
+data
+dist
+bin
+node_modules
+.git
+.env
+.env.*
+*.exe
+*.zip
+*.test
+*~

@@ -1,0 +1,54 @@
+name: dozor
+
+services:
+  admin:
+    build:
+      context: ./admin-panel
+    image: dozor-admin:local
+    restart: unless-stopped
+    init: true
+    command:
+      - -listen
+      - 0.0.0.0:8080
+      - -data
+      - /data
+      - -go2rtc-url
+      - http://go2rtc:1984
+    environment:
+      GUARD_ADMIN_PASSWORD: ${GUARD_ADMIN_PASSWORD:?Set GUARD_ADMIN_PASSWORD in .env (at least 12 characters)}
+      GUARD_AGENT_TOKEN: ${GUARD_AGENT_TOKEN:-}
+    ports:
+      - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:8080:8080/tcp"
+    volumes:
+      - admin-data:/data
+    depends_on:
+      go2rtc:
+        condition: service_healthy
+
+  go2rtc:
+    image: alexxit/go2rtc:1.9.15
+    restart: unless-stopped
+    environment:
+      CAMERA_RTSP_URL: ${CAMERA_RTSP_URL:-rtsp://192.168.1.199:554/live/0}
+      GO2RTC_HOST: ${GO2RTC_HOST:-127.0.0.1}
+    ports:
+      - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:1984:1984/tcp"
+      - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:8554:8554/tcp"
+      - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:8555:8555/tcp"
+      - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:8555:8555/udp"
+    volumes:
+      - type: bind
+        source: ./configs/go2rtc.docker.yaml
+        target: /config/go2rtc.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "3", "http://127.0.0.1:1984/api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  admin-data:

@@ -58,7 +58,13 @@ func (h *Handler) middleware(next http.Handler) http.Handler {
 		}()
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-src http://127.0.0.1:1984; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'")
+		// The browser reaches go2rtc on the panel host, not its Docker DNS name.
+		playerOrigin := url.URL{Scheme: "http", Host: r.Host}
+		if r.TLS != nil {
+			playerOrigin.Scheme = "https"
+		}
+		playerOrigin.Host = net.JoinHostPort(playerOrigin.Hostname(), "1984")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-src "+playerOrigin.String()+"; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'")
 		if origin := r.Header.Get("Origin"); origin != "" {
 			u, err := url.Parse(origin)
 			if err != nil || u.Host != r.Host || (u.Scheme != "http" && u.Scheme != "https") {

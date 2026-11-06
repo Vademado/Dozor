@@ -112,3 +112,28 @@ func TestSSEPublishesStatusAndHonorsCancellation(t *testing.T) {
 		t.Fatal("SSE status missing")
 	}
 }
+
+func TestPlayerFrameOriginFollowsPanelHost(t *testing.T) {
+	h := testHandler(t, "a-long-admin-password", "")
+	for _, tc := range []struct{ panel, player string }{
+		{"http://localhost:8080", "http://localhost:1984"},
+		{"http://127.0.0.1:8080", "http://127.0.0.1:1984"},
+		{"http://192.168.1.156:8080", "http://192.168.1.156:1984"},
+		{"http://[::1]:8080", "http://[::1]:1984"},
+		{"https://dozor.example:8080", "https://dozor.example:1984"},
+	} {
+		t.Run(tc.panel, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, tc.panel+"/", nil)
+			r.SetBasicAuth("admin", "a-long-admin-password")
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			if w.Code != http.StatusOK {
+				t.Fatalf("panel returned %d", w.Code)
+			}
+			csp := w.Header().Get("Content-Security-Policy")
+			if !strings.Contains(csp, "; frame-src "+tc.player+";") {
+				t.Fatalf("player origin missing from CSP: %s", csp)
+			}
+		})
+	}
+}

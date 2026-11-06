@@ -44,7 +44,7 @@ func (g *Gateway) request(ctx context.Context, path string, query url.Values) ([
 	}
 	response, err := g.client.Do(req)
 	if err != nil {
-		return nil, 0, errors.New("go2rtc недоступен на 127.0.0.1:1984")
+		return nil, 0, errors.New("go2rtc недоступен. Проверьте адрес API и состояние сервиса.")
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(response.Body, 2<<20))

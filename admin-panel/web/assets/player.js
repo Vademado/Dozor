@@ -1,6 +1,8 @@
 // Embed the exact standalone go2rtc page. It chooses its own playback mode,
 // codecs and buffering. No media packets pass through the admin server.
-export const STREAM_URL = 'http://127.0.0.1:1984/stream.html?src=luckfox';
+const streamURL = new URL('/stream.html?src=luckfox', window.location.origin);
+streamURL.port = '1984';
+export const STREAM_URL = streamURL.href;
 
 export class GuardPlayer extends HTMLElement {
   start() {

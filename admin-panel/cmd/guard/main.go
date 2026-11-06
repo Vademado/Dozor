@@ -31,6 +31,7 @@ func main() {
 func run() error {
 	listen := flag.String("listen", "127.0.0.1:8080", "HTTP listen address")
 	dataDir := flag.String("data", "data", "directory for settings and JSONL journal")
+	go2rtcURL := flag.String("go2rtc-url", "http://127.0.0.1:1984", "go2rtc API address reachable from this server")
 	flag.Parse()
 	password, agentToken := os.Getenv("GUARD_ADMIN_PASSWORD"), os.Getenv("GUARD_AGENT_TOKEN")
 	host, _, err := net.SplitHostPort(*listen)
@@ -59,8 +60,7 @@ func run() error {
 	defer stop()
 	// The existing go2rtc process owns streaming. This process only reads its
 	// counters; the browser embeds its unmodified stream.html directly.
-	go2rtcURL := "http://127.0.0.1:1984"
-	engine := relay.New(go2rtcURL)
+	engine := relay.New(*go2rtcURL)
 	defer engine.Close()
 	service, err := usecase.New(repository.NewSettingsFile(*dataDir), journal, engine, agentToken != "", log)
 	if err != nil {
