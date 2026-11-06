@@ -1,2 +1,2 @@
 streams:
-  luckfox: rtsp://192.168.1.199:554/live/0
+  luckfox: rtsp://95.163.220.75:8554/mystream

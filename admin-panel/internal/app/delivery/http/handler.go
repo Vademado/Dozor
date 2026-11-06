@@ -20,15 +20,24 @@ type Handler struct {
 	service      *usecase.Service
 	log          *slog.Logger
 	console      consoleConnector
+	consoleHost  string
 	consoleSlots chan struct{}
 }
 
 func New(service *usecase.Service, log *slog.Logger) *Handler {
-	return &Handler{service: service, log: log, consoleSlots: make(chan struct{}, 8)}
+	return &Handler{service: service, log: log, consoleHost: "192.168.1.199", consoleSlots: make(chan struct{}, 8)}
 }
 
 func (h *Handler) WithConsole(connector consoleConnector) *Handler {
 	h.console = connector
+	return h
+}
+
+// WithConsoleHost configures the board independently of an RTSP relay address.
+func (h *Handler) WithConsoleHost(host string) *Handler {
+	if host != "" {
+		h.consoleHost = host
+	}
 	return h
 }
 

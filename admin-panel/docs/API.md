@@ -37,7 +37,7 @@
 {
   "revision": 1,
   "camera_name": "Камера 01 · Luckfox",
-  "source": "rtsp://192.168.1.199:554/live/0",
+  "source": "rtsp://95.163.220.75:8554/mystream",
   "preview_enabled": true,
   "armed": false,
   "confidence": 0.5,
@@ -61,7 +61,7 @@
 POST /api/preview
 Content-Type: application/json
 
-{"enabled":true,"source":"rtsp://192.168.1.199:554/live/0"}
+{"enabled":true,"source":"rtsp://95.163.220.75:8554/mystream"}
 ```
 
 Остановка: `{"enabled":false}`. Ответ: `{"settings":{...},"status":{...}}`. Изменение желаемого просмотра сохраняется даже при недоступной камере; ошибка сети отражается в `status.stream.error`, чтение повторяется автоматически. Успешный HTTP 200 здесь не означает получение кадров.

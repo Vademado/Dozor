@@ -17,6 +17,8 @@ services:
     environment:
       GUARD_ADMIN_PASSWORD: ${GUARD_ADMIN_PASSWORD:?Set GUARD_ADMIN_PASSWORD in .env (at least 12 characters)}
       GUARD_AGENT_TOKEN: ${GUARD_AGENT_TOKEN:-}
+      CAMERA_RTSP_URL: ${CAMERA_RTSP_URL:-rtsp://95.163.220.75:8554/mystream}
+      CAMERA_SSH_HOST: ${CAMERA_SSH_HOST:-192.168.1.199}
     ports:
       - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:8080:8080/tcp"
     volumes:
@@ -29,7 +31,7 @@ services:
     image: alexxit/go2rtc:1.9.15
     restart: unless-stopped
     environment:
-      CAMERA_RTSP_URL: ${CAMERA_RTSP_URL:-rtsp://192.168.1.199:554/live/0}
+      CAMERA_RTSP_URL: ${CAMERA_RTSP_URL:-rtsp://95.163.220.75:8554/mystream}
       GO2RTC_HOST: ${GO2RTC_HOST:-127.0.0.1}
     ports:
       - "${DOZOR_BIND_ADDRESS:-127.0.0.1}:1984:1984/tcp"

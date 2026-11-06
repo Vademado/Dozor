@@ -21,11 +21,7 @@ type consoleConnector interface {
 }
 
 func (h *Handler) consoleConfig(w http.ResponseWriter, _ *http.Request) {
-	host := "192.168.1.199"
-	if source, err := url.Parse(h.service.Settings().Source); err == nil && source.Hostname() != "" {
-		host = source.Hostname()
-	}
-	writeJSON(w, 200, map[string]any{"enabled": h.console != nil, "host": host, "port": 22, "user": "root"})
+	writeJSON(w, 200, map[string]any{"enabled": h.console != nil, "host": h.consoleHost, "port": 22, "user": "root"})
 }
 
 type consoleMessage struct {

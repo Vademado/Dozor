@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	source := flag.String("source", "rtsp://192.168.1.199:554/live/0", "RTSP source")
+	source := flag.String("source", "rtsp://95.163.220.75:8554/mystream", "RTSP source")
 	duration := flag.Duration("duration", 15*time.Second, "measurement duration after PLAY")
 	flag.Parse()
 	if err := run(*source, *duration); err != nil {

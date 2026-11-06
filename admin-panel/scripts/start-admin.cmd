@@ -1,5 +1,6 @@
 @echo off
 setlocal
+if not defined CAMERA_RTSP_URL set "CAMERA_RTSP_URL=rtsp://95.163.220.75:8554/mystream"
 cd /d "%~dp0.."
 if not exist "dist\guard-admin.exe" (
   echo guard-admin.exe not found. Run scripts\build.cmd first.

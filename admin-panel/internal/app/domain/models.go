@@ -34,7 +34,7 @@ type Settings struct {
 
 func DefaultSettings() Settings {
 	return Settings{
-		Revision: 1, CameraName: "Камера 01 · Luckfox", Source: "rtsp://192.168.1.199:554/live/0",
+		Revision: 1, CameraName: "Камера 01 · Luckfox", Source: "rtsp://95.163.220.75:8554/mystream",
 		PreviewEnabled: true, Confidence: .5, DwellSeconds: 30, Cooldown: 60,
 		ROI: ROI{Enabled: false, X: .15, Y: .12, Width: .7, Height: .76},
 	}

@@ -66,12 +66,23 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("initialize application: %w", err)
 	}
+	// Compose supplies the same source to the panel and go2rtc. Apply it on
+	// startup even when settings already exist in a persistent data volume.
+	if source := os.Getenv("CAMERA_RTSP_URL"); source != "" {
+		cfg := service.Settings()
+		if cfg.Source != source {
+			cfg.Source = source
+			if _, err := service.Update(cfg); err != nil {
+				return fmt.Errorf("configure RTSP source: %w", err)
+			}
+		}
+	}
 	var externalKnownHosts []string
 	if userDir, err := os.UserHomeDir(); err == nil {
 		externalKnownHosts = append(externalKnownHosts, filepath.Join(userDir, ".ssh", "known_hosts"))
 	}
 	sshConnector := &console.Connector{Keys: console.NewHostKeys(filepath.Join(*dataDir, "ssh_known_hosts"), externalKnownHosts...)}
-	handler := delivery.New(service, log).WithConsole(sshConnector)
+	handler := delivery.New(service, log).WithConsole(sshConnector).WithConsoleHost(os.Getenv("CAMERA_SSH_HOST"))
 	server := &http.Server{Addr: *listen, Handler: handler.Routes(nil, password, agentToken), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16384}
 	server.BaseContext = func(net.Listener) context.Context { return ctx }
 	listener, err := net.Listen("tcp", *listen)

@@ -1,4 +1,4 @@
-# Local media gateway. Camera/source changes from the console use go2rtc's API.
+# Local media gateway. The source is configured here, not through the panel API.
 api:
   listen: "127.0.0.1:1984"
 rtsp:
@@ -11,4 +11,4 @@ webrtc:
     - "127.0.0.1:8555"
 streams:
   luckfox:
-    - rtsp://192.168.1.199:554/live/0
+    - rtsp://95.163.220.75:8554/mystream
