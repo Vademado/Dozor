@@ -58,17 +58,18 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	// The existing go2rtc process owns streaming. This process only reads its
-	// counters; the browser embeds its unmodified stream.html directly.
+	// go2rtc owns streaming; the panel configures its source and reads counters.
+	// The browser embeds the unmodified stream.html directly.
 	engine := relay.New(*go2rtcURL)
 	defer engine.Close()
+	_, settingsErr := os.Stat(filepath.Join(*dataDir, "settings.json"))
 	service, err := usecase.New(repository.NewSettingsFile(*dataDir), journal, engine, agentToken != "", log)
 	if err != nil {
 		return fmt.Errorf("initialize application: %w", err)
 	}
-	// Compose supplies the same source to the panel and go2rtc. Apply it on
-	// startup even when settings already exist in a persistent data volume.
-	if source := os.Getenv("CAMERA_RTSP_URL"); source != "" {
+	// The environment seeds the first launch. Later user changes in the data
+	// volume take precedence and are restored to go2rtc by the monitor.
+	if source := os.Getenv("CAMERA_RTSP_URL"); os.IsNotExist(settingsErr) && source != "" {
 		cfg := service.Settings()
 		if cfg.Source != source {
 			cfg.Source = source

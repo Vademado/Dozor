@@ -39,18 +39,22 @@ async function action(button, callback) {
 }
 
 function setConfig(config, forceForm = false) {
+  const sourceChanged = state.config && state.config.source !== config.source;
   state.config = config;
-  try { cameraConsole.setDefaultHost(new URL(config.source).hostname); } catch { /* validated by server */ }
   if (!state.sourceDirty) $('sourceInput').value = config.source;
   $('roiEnabled').checked = config.roi.enabled;
   text('cameraTitle', config.camera_name);
   try { document.querySelector('.system-address').firstChild.textContent = `${new URL(config.source).hostname} `; } catch { /* validated on server */ }
   if (!state.formDirty || forceForm) fillSettings();
   drawROI(); updateROIMini(); updateButtons();
+  if (sourceChanged) {
+    unmountPlayer();
+  }
 }
 
 function updateButtons() {
   const preview = state.config?.preview_enabled;
+  $('startButton').lastChild.textContent = state.sourceDirty ? 'Применить и запустить' : 'Запустить';
   $('stopButton').disabled = !preview;
   $('snapshotButton').disabled = !state.playing;
   $('reconnectButton').disabled = !preview;
@@ -103,7 +107,10 @@ function applyStatus(status) {
   }
   // Refresh settings after changes in another tab, preserving an unsaved form.
   if (state.config && status.policy_revision !== state.config.revision) {
-    api('/api/settings').then(config => setConfig(config)).catch(() => {});
+    api('/api/settings').then(config => {
+      setConfig(config);
+      if (state.status) applyStatus(state.status);
+    }).catch(() => {});
   }
 }
 
@@ -174,7 +181,7 @@ async function preview(enabled) {
   state.sourceDirty = false;
   unmountPlayer(); setConfig(result.settings); applyStatus(result.status);
   if (!enabled) { state.sessionStarted = 0; toast('Просмотр остановлен. Режим охраны не изменён.'); }
-  else toast('Открыт существующий поток luckfox в go2rtc.');
+  else toast('Источник сохранён и применён. Открыт плеер go2rtc.');
 }
 
 async function reconnect() {
@@ -366,7 +373,10 @@ function navigate() {
 }
 
 function bindControls() {
-  $('sourceInput').addEventListener('input',()=>state.sourceDirty=true);
+  $('sourceInput').addEventListener('input',()=>{state.sourceDirty=true;updateButtons();});
+  $('sourceInput').addEventListener('keydown',event=>{
+    if(event.key==='Enter') {event.preventDefault();$('startButton').click();}
+  });
   $('startButton').addEventListener('click',()=>action($('startButton'),()=>preview(true)));
   $('stopButton').addEventListener('click',()=>action($('stopButton'),()=>preview(false)));
   for(const id of ['reconnectButton','placeholderRetry'])$(id).addEventListener('click',()=>action($(id),reconnect));

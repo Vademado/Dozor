@@ -13,6 +13,7 @@ import (
 )
 
 var ErrConflict = errors.New("настройки уже изменились; обновите страницу и повторите действие")
+var ErrStreamUnavailable = errors.New("Не удалось применить источник в go2rtc. Ссылка сохранена; повторите запуск после восстановления сервиса.")
 
 type SettingsRepository interface {
 	Load() (domain.Settings, error)
@@ -130,7 +131,9 @@ func (s *Service) Preview(ctx context.Context, enabled bool, source *string) (do
 	cfg, err := s.saveLocked(cfg, "preview_changed", message)
 	s.opMu.Unlock()
 	if err == nil {
-		s.Refresh(ctx)
+		if refreshErr := s.Refresh(ctx); enabled && refreshErr != nil {
+			return cfg, ErrStreamUnavailable
+		}
 	}
 	return cfg, err
 }
@@ -162,24 +165,24 @@ func (s *Service) Monitor(ctx context.Context) {
 	}
 }
 
-func (s *Service) Refresh(ctx context.Context) {
+func (s *Service) Refresh(ctx context.Context) error {
 	s.opMu.Lock()
 	defer s.opMu.Unlock()
 	cfg := s.Settings()
 	next, err := s.stream.Status(ctx)
-	if err == nil {
+	if err == nil || next.Available {
 		if cfg.PreviewEnabled && (!next.Registered || s.registeredSource != cfg.Source) {
 			if err = s.stream.Start(ctx, cfg.Source); err != nil {
 				next.Error = err.Error()
 			} else {
 				s.registeredSource = cfg.Source
-				next, _ = s.stream.Status(ctx)
+				next, err = s.stream.Status(ctx)
 			}
 		} else if !cfg.PreviewEnabled && next.Registered {
 			if err = s.stream.Stop(ctx); err != nil {
 				next.Error = err.Error()
 			} else {
-				next, _ = s.stream.Status(ctx)
+				next, err = s.stream.Status(ctx)
 			}
 		}
 	}
@@ -202,6 +205,7 @@ func (s *Service) Refresh(ctx context.Context) {
 			s.audit("info", "rtsp_connected", "stream", "Прямое RTSP-подключение к камере установлено")
 		}
 	}
+	return err
 }
 
 func (s *Service) Status() domain.Status {

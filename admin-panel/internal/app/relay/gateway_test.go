@@ -10,9 +10,10 @@ import (
 	"testing"
 )
 
-func TestReadOnlyObservationAndStatsSurviveProducerReconnect(t *testing.T) {
+func TestSourceConfigurationAndStatsSurviveProducerReconnect(t *testing.T) {
 	registered := true
 	requests := 0
+	updates := 0
 	producerID, raw := 1, 100
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api" {
@@ -24,9 +25,18 @@ func TestReadOnlyObservationAndStatsSurviveProducerReconnect(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
+		if r.Method == http.MethodPut {
+			updates++
+			if r.URL.Query().Get("name") != StreamName || r.URL.Query().Get("src") != "rtsp://camera/live/0" {
+				t.Error("incorrect stream configuration")
+			}
+			registered = true
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		requests++
 		if r.Method != http.MethodGet || r.URL.Query().Get("src") != StreamName {
-			t.Error("observer must only read the existing luckfox stream")
+			t.Error("unexpected status request")
 			http.Error(w, "mutation forbidden", 405)
 			return
 		}
@@ -46,8 +56,8 @@ func TestReadOnlyObservationAndStatsSurviveProducerReconnect(t *testing.T) {
 	if err = gateway.Start(ctx, "rtsp://camera/live/0"); err != nil {
 		t.Fatal(err)
 	}
-	if requests != 1 {
-		t.Fatal("Start changed the upstream stream")
+	if requests != 1 || updates != 1 {
+		t.Fatal("Start must apply the source once")
 	}
 	status, err = gateway.Status(ctx)
 	if err != nil || !status.Online || status.Bytes != 100 || status.Viewers != 1 || status.Codecs[0] != "H.264" || status.InputFPS != nil {
@@ -71,7 +81,7 @@ func TestReadOnlyObservationAndStatsSurviveProducerReconnect(t *testing.T) {
 	}
 	registered = true
 	before := requests
-	if err = gateway.Stop(ctx); err != nil || !registered || requests != before {
+	if err = gateway.Stop(ctx); err != nil || !registered || requests != before || updates != 1 {
 		t.Fatal("Stop changed the upstream stream")
 	}
 	gateway.Close()

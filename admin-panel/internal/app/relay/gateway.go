@@ -33,12 +33,12 @@ func New(base string) *Gateway {
 	return &Gateway{base: strings.TrimRight(base, "/"), client: &http.Client{Timeout: 3 * time.Second}}
 }
 
-func (g *Gateway) request(ctx context.Context, path string, query url.Values) ([]byte, int, error) {
+func (g *Gateway) request(ctx context.Context, method, path string, query url.Values) ([]byte, int, error) {
 	endpoint := g.base + path
 	if len(query) > 0 {
 		endpoint += "?" + query.Encode()
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
 	if err != nil {
 		return nil, 0, errors.New("неверный адрес go2rtc")
 	}
@@ -51,8 +51,8 @@ func (g *Gateway) request(ctx context.Context, path string, query url.Values) ([
 	return data, response.StatusCode, err
 }
 
-// Start enables observation for the panel. It never changes the existing
-// luckfox stream in go2rtc or opens another RTSP connection to the camera.
+// Start applies the saved source to go2rtc and enables panel observation.
+// The media itself still travels directly between go2rtc and its viewers.
 func (g *Gateway) Start(ctx context.Context, source string) error {
 	u, err := url.Parse(source)
 	if err != nil || u.Host == "" || (u.Scheme != "rtsp" && u.Scheme != "rtsps") {
@@ -62,6 +62,15 @@ func (g *Gateway) Start(ctx context.Context, source string) error {
 	defer g.mu.Unlock()
 	if g.registered && g.source == source {
 		return nil
+	}
+	if g.source != source {
+		_, status, err := g.request(ctx, http.MethodPut, "/api/streams", url.Values{"name": {StreamName}, "src": {source}})
+		if err != nil {
+			return err
+		}
+		if status < 200 || status >= 300 {
+			return errors.New("go2rtc отклонил изменение источника видео")
+		}
 	}
 	g.source = source
 	g.registered = true
@@ -77,9 +86,10 @@ func (g *Gateway) Stop(ctx context.Context) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.registered = false
-	g.source = ""
 	g.producer = ""
 	g.lastRaw = 0
+	g.total = 0
+	g.lastPacket = time.Time{}
 	return nil
 }
 
@@ -103,8 +113,10 @@ func (g *Gateway) Status(ctx context.Context) (domain.StreamStatus, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	s := domain.StreamStatus{Backend: "go2rtc", Registered: g.registered, Codecs: []string{}, CheckedAt: time.Now().UTC(), State: "stopped"}
-	data, status, err := g.request(ctx, "/api/streams", url.Values{"src": {StreamName}})
+	data, status, err := g.request(ctx, http.MethodGet, "/api/streams", url.Values{"src": {StreamName}})
 	if err != nil {
+		g.registered = false
+		g.source = ""
 		s.Error = err.Error()
 		s.State = "unavailable"
 		return s, err
@@ -115,6 +127,8 @@ func (g *Gateway) Status(ctx context.Context) (domain.StreamStatus, error) {
 	}
 	s.Available = true
 	if status == 404 {
+		g.registered = false
+		g.source = ""
 		s.Registered = false
 		s.Error = "В go2rtc не найден поток luckfox. Проверьте его go2rtc.yaml."
 		return s, errors.New(s.Error)

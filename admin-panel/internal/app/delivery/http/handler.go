@@ -118,6 +118,10 @@ func (h *Handler) fail(w http.ResponseWriter, err error) {
 		writeJSON(w, 409, map[string]string{"error": err.Error()})
 		return
 	}
+	if errors.Is(err, usecase.ErrStreamUnavailable) {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
 	h.log.Error("request failed", "error", err)
 	writeJSON(w, 500, map[string]string{"error": "Не удалось выполнить действие. Проверьте доступ к каталогу данных и журнал сервера."})
 }
@@ -131,6 +135,10 @@ func (h *Handler) settings(w http.ResponseWriter, r *http.Request) {
 	cfg, err := h.service.Update(cfg)
 	if err != nil {
 		h.fail(w, err)
+		return
+	}
+	if err = h.service.Refresh(r.Context()); cfg.PreviewEnabled && err != nil {
+		h.fail(w, usecase.ErrStreamUnavailable)
 		return
 	}
 	writeJSON(w, 200, cfg)
